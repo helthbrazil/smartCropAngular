@@ -34,6 +34,11 @@
   }
 
   .foto-principal{
+    max-width: 200px;
+    min-width: 200px;
+  }
+
+  .output-image{
     max-width: 300px;
     min-width: 300px;
   }
