@@ -1,8 +1,20 @@
-<h2>Face Detection Example</h2>
-<p>
-  &lt;canvas&gt; elements named <b>canvasInput</b> and <b>canvasOutput</b> have been prepared.<br>
-  Click <b>Detect Face</b> button to see the result. You can choose another image.<br>
-</p>
+<h2>Detecção Facial</h2>
+
+<div *ngIf="showLoading">
+  <div class="loader"></div>
+  <p>Padronizando tamanho das imagens</p>
+</div>
+
+<div class="demo-frame">
+  <div class="demo-container">
+    <img *ngIf="imageData" [src]="imageData">
+  </div>
+</div>
+
+<div>
+  <div class="control"><button id="tryIt" (click)="detectFace()" [disabled]="!classifiersLoaded$ | async">Detect Face</button></div>
+</div>
+
 
 <div>
   <table cellpadding="0" cellspacing="0" width="0" border="0">
@@ -24,10 +36,4 @@
       </td>
     </tr>
   </table>
-</div>
-<div>
-  <div class="control"><button id="tryIt" (click)="detectFace()" [disabled]="!classifiersLoaded$ | async">Detect Face</button></div>
-</div>
-<div>
-  <a routerLink="/example-list">More Examples</a>
 </div>
