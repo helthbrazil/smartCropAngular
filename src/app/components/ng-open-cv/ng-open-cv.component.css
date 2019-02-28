@@ -25,3 +25,15 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+
+  .avatar {
+    vertical-align: middle;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+  }
+
+  .foto-principal{
+    max-width: 300px;
+    min-width: 300px;
+  }

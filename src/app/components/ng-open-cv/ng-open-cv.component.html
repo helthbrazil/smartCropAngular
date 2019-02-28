@@ -5,10 +5,13 @@
   <p>Padronizando tamanho das imagens</p>
 </div>
 
-<div class="demo-frame">
+<div style="margin: 5px;" class="demo-frame">
   <div class="demo-container">
-    <img *ngIf="imageData" [src]="imageData">
+    <img class="foto-principal" *ngIf="imageData" [src]="imageData">
+    <br>
+    <img class="avatar" *ngIf="imageDataAvatar" [src]="imageDataAvatar">
   </div>
+  
 </div>
 
 <div>

@@ -38,6 +38,7 @@ export class NgOpenCvComponent implements OnInit {
 
   file: any;
   imageData: any;
+  imageDataAvatar: any;
 
   // Inject the NgOpenCVService
   constructor(private ngOpenCVService: NgOpenCVService, private ng2ImgToolsService: Ng2ImgToolsService,
@@ -181,12 +182,24 @@ export class NgOpenCvComponent implements OnInit {
         imageCrop.larguraImagemOriginal = this.file.largura;
 
         console.info(this.file);
+        
+        let copiaImagemCrop = { ...imageCrop };
         let crop = this.processarLogicaDeCorteDaImagem(imageCrop, false);
+        let cropMiniatura = this.processarLogicaDeCorteDaImagem(copiaImagemCrop, true);
 
         this.ng2ImgToolsService.cropImage(this.file, crop.width, crop.height, crop.x, crop.y).subscribe(response => {
           console.log(response);
           let urlCreator = window.URL;
           this.imageData = this.sanitizer.bypassSecurityTrustUrl(
+            urlCreator.createObjectURL(response));
+        }, error => {
+          console.error(error);
+        });
+
+        this.ng2ImgToolsService.cropImage(this.file, cropMiniatura.width, cropMiniatura.height, cropMiniatura.x, cropMiniatura.y).subscribe(response => {
+          console.log(response);
+          let urlCreator = window.URL;
+          this.imageDataAvatar = this.sanitizer.bypassSecurityTrustUrl(
             urlCreator.createObjectURL(response));
         }, error => {
           console.error(error);
@@ -236,15 +249,32 @@ export class NgOpenCvComponent implements OnInit {
       abaixo = imagemCrop.alturaImagemOriginal;
     }
 
-    if (esquerda < 0) {
-      abaixo = abaixo + esquerda;
-      esquerda = 0;
+    if (isMiniatura) {
+
+      if (esquerda < 0) {
+        acima = acima - (esquerda / 2);
+        abaixo = abaixo + (esquerda / 2);
+        esquerda = 0;
+      }
+
+      if (direita > imagemCrop.larguraImagemOriginal) {
+        acima = acima - (imagemCrop.larguraImagemOriginal / 2);
+        abaixo = abaixo + (imagemCrop.larguraImagemOriginal / 2);
+        direita = imagemCrop.larguraImagemOriginal;
+      }
+
+    } else {
+      if (esquerda < 0) {
+        abaixo = abaixo + esquerda;
+        esquerda = 0;
+      }
+
+      if (direita > imagemCrop.larguraImagemOriginal) {
+        abaixo = abaixo + (imagemCrop.larguraImagemOriginal - direita);
+        direita = imagemCrop.larguraImagemOriginal;
+      }
     }
 
-    if (direita > imagemCrop.larguraImagemOriginal) {
-      abaixo = abaixo + (imagemCrop.larguraImagemOriginal - direita);
-      direita = imagemCrop.larguraImagemOriginal;
-    }
 
     // TRANSFORMAR EM INTEIROS
     esquerda = Math.floor(esquerda);
@@ -256,7 +286,6 @@ export class NgOpenCvComponent implements OnInit {
     imagemCrop.y = acima;
     imagemCrop.width = direita - esquerda;
     imagemCrop.height = abaixo - acima;
-
 
     return imagemCrop;
   }
