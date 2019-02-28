@@ -198,12 +198,12 @@ export class NgOpenCvComponent implements OnInit {
         const point2 = new cv.Point(faces.get(i).x + faces.get(i).width, faces.get(i).y + faces.get(i).height);
         cv.rectangle(src, point1, point2, [255, 0, 0, 255]);
         // detect eyes in face ROI
-        /* eyeCascade.detectMultiScale(roiGray, eyes);
+        eyeCascade.detectMultiScale(roiGray, eyes);
         for (let j = 0; j < eyes.size(); ++j) {
           const point3 = new cv.Point(eyes.get(j).x, eyes.get(j).y);
           const point4 = new cv.Point(eyes.get(j).x + eyes.get(j).width, eyes.get(j).y + eyes.get(j).height);
           cv.rectangle(roiSrc, point3, point4, [0, 0, 255, 255]);
-        } */
+        }
         roiGray.delete();
         roiSrc.delete();
       }
@@ -231,9 +231,9 @@ export class NgOpenCvComponent implements OnInit {
     }
 
     if (abaixo > imagemCrop.alturaImagemOriginal) {
-      esquerda = esquerda - (acima / 2);
-      direita = direita + (acima / 2);
-      acima = 0;
+      esquerda = esquerda - ((imagemCrop.alturaImagemOriginal - abaixo) / 2);
+      direita = direita + ((imagemCrop.alturaImagemOriginal - abaixo) / 2);
+      abaixo = imagemCrop.alturaImagemOriginal;
     }
 
     if (esquerda < 0) {
@@ -256,7 +256,7 @@ export class NgOpenCvComponent implements OnInit {
     imagemCrop.y = acima;
     imagemCrop.width = direita - esquerda;
     imagemCrop.height = abaixo - acima;
-    
+
 
     return imagemCrop;
   }
