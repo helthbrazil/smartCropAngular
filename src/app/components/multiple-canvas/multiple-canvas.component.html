@@ -1,0 +1,6 @@
+<div class="caption">canvasInput <input (change)="readDataUrl($event)" multiple #fileInput type="file" id="fileInput"
+  name="file" accept="image/*" /></div>
+
+  <div>
+    <canvas *ngFor="let item of elementosCanvas" id="{{item.id}}"></canvas>
+  </div>

@@ -9,6 +9,8 @@ import { NgOpenCvComponent } from './components/ng-open-cv/ng-open-cv.component'
 import { Ng2ImgMaxModule } from 'ng2-img-max';
 import { Ng2ImgMaxService, ImgMaxSizeService, ImgExifService, ImgMaxPXSizeService } from 'ng2-img-max';
 import { Ng2PicaService } from 'ng2-pica';
+import { MultipleCanvasComponent } from './components/multiple-canvas/multiple-canvas.component';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 
 const openCVConfig: OpenCVOptions = {
   scriptUrl: `assets/opencv/opencv.js`,
@@ -19,11 +21,13 @@ const openCVConfig: OpenCVOptions = {
 @NgModule({
   declarations: [
     AppComponent,
-    NgOpenCvComponent
+    NgOpenCvComponent,
+    MultipleCanvasComponent
   ],
   imports: [
     BrowserModule,
     Ng2ImgMaxModule,
+    HttpClientModule,
     NgOpenCVModule.forRoot(openCVConfig),
     AppRoutingModule
   ],

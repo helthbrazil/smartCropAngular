@@ -5,13 +5,18 @@
   <p>Padronizando tamanho das imagens</p>
 </div>
 
-<div style="margin: 5px;" class="demo-frame">
+<!-- <div style="margin: 5px;" class="demo-frame">
   <div class="demo-container">
     <img class="foto-principal" *ngIf="imageData" [src]="imageData">
     <br>
     <img class="avatar" *ngIf="imageDataAvatar" [src]="imageDataAvatar">
   </div>
-  
+
+</div> -->
+
+<div *ngIf="imagensProcessadas">
+  <img *ngFor="let item of imagensProcessadas" class="foto-principal" [src]="item">
+  <img *ngFor="let item of miniaturasProcessadas" class="avatar" [src]="item">
 </div>
 
 <div style="margin: 5px;">
@@ -19,14 +24,14 @@
 </div>
 
 
-<div>
+<!-- <div>
   <table cellpadding="0" cellspacing="0" width="0" border="0">
     <tr>
       <td>
-        <canvas class="output-image" #canvasInput id="canvasInput"></canvas>
+        <canvas style="visibility: hidden;" class="output-image" #canvasInput id="canvasInput"></canvas>
       </td>
       <td>
-        <canvas class="output-image" #canvasOutput id="canvasOutput"></canvas>
+        <canvas style="visibility: hidden;" class="output-image" #canvasOutput id="canvasOutput"></canvas>
       </td>
     </tr>
     <tr>
@@ -39,4 +44,12 @@
       </td>
     </tr>
   </table>
+</div> -->
+
+<div>
+  <input (change)="readDataUrl($event)" multiple #fileInput type="file" id="fileInput" name="file" accept="image/*" />
+</div>
+
+<div>
+  <canvas *ngFor="let item of elementosCanvas" [id]="item.id"></canvas>
 </div>
