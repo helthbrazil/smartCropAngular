@@ -6,6 +6,7 @@ import { Observable, forkJoin, BehaviorSubject, fromEvent, Observer } from 'rxjs
 import { DomSanitizer } from '@angular/platform-browser';
 import { ImagemCrop } from 'src/app/models/imagemCrop';
 import { Arquivo } from 'src/app/models/arquivo';
+import { ResizeServiceService } from 'src/app/services/resize-service.service';
 
 
 @Component({
@@ -24,7 +25,7 @@ export class NgOpenCvComponent implements OnInit {
   readonly DIMENSOES = [40, 120, 200, 600, 800];
 
   showLoading = false;
-  maxWidth = 800;
+  maxWidth = 400;
   maxHeight = this.maxWidth;
   imageUrl = 'assets/DaveChappelle.jpg';
   // Notifies of the ready state of the classifiers load operation
@@ -52,7 +53,7 @@ export class NgOpenCvComponent implements OnInit {
 
   // Inject the NgOpenCVService
   constructor(private ngOpenCVService: NgOpenCVService, private ng2ImgToolsService: Ng2ImgToolsService,
-    private sanitizer: DomSanitizer) { }
+    private sanitizer: DomSanitizer, private resizeService: ResizeServiceService) { }
 
   ngOnInit() {
     this.canvasList = new Array<ElementRef>();
@@ -81,6 +82,10 @@ export class NgOpenCvComponent implements OnInit {
   ngAfterViewInit(): void { }
 
   readDataUrl(event) {
+
+    let observerRedimensionar = new Array<any>();
+    let observerLoad = new Array<any>();
+
     // LIMPAR LISTA DE CANVAS
     let totalDeArquivos = event.target.files.length;
     if (totalDeArquivos > 0) {
@@ -96,16 +101,42 @@ export class NgOpenCvComponent implements OnInit {
 
     for (let i = 0; i < totalDeArquivos; i++) {
       arquivos.push(event.target.files[i]);
+      observerRedimensionar.push(this.resizeService.redimensionar(this.maxWidth, arquivos[i]));
     }
 
-    this.ng2ImgToolsService.resize(arquivos, 800, 800, false).subscribe(response => {
+    forkJoin(observerRedimensionar).subscribe(response => {
+      response.forEach(item => {
+        this.elementosCanvas.push(item);
+      });
+
+      this.elementosCanvas.forEach(elemento => {
+        observerLoad.push(this.ngOpenCVService.loadImageToHTMLCanvas(elemento.dataurl, elemento.canvas));
+      });
+
+      forkJoin(observerLoad).subscribe(response => {
+        console.info('imagens carregadas');
+        setTimeout(() => {
+          this.detectFace();
+        }, 500);
+      });
+
+    });
+
+    /*  this.resizeService.redimensionar(800, event.target.files[0], (dataurl, canvas) => {
+    console.info(dataurl);
+    console.info(canvas);
+    this.elementosCanvas.push(canvas);
+    this.ngOpenCVService.loadImageToHTMLCanvas(dataurl, canvas);
+  }); */
+
+    /* this.ng2ImgToolsService.resize(arquivos, 800, 800, false).subscribe(response => {
       arquivosRedimensionados.push(response);
       if (arquivosRedimensionados.length === totalDeArquivos) {
         this.transformarArquivosParaImagensCanvas(arquivosRedimensionados);
       }
     }, error => {
       console.error(error);
-    });
+    }); */
   }
   // Before attempting face detection, we need to load the appropriate classifiers in memory first
   // by using the createFileFromUrl(path, url) function, which takes two parameters
@@ -151,7 +182,8 @@ export class NgOpenCvComponent implements OnInit {
     let contador = 0;
     // Example code from OpenCV.js to perform face and eyes detection
     // Slight adapted for Angular
-    this.elementosCanvas.forEach(canvas => {
+    this.elementosCanvas.forEach(item => {
+      let canvas = item.canvas;
       contador++;
       const src = cv.imread(canvas.id);
       const gray = new cv.Mat();
@@ -170,39 +202,38 @@ export class NgOpenCvComponent implements OnInit {
 
           // PROCESSAR REGRA DE CORTE
           let imageCrop = new ImagemCrop(faces.get(i).width, faces.get(i).height, faces.get(i).x, faces.get(i).y);
-          let arquivo = this.arquivos.find(arq => arq.nome === canvas.id);
-          if (arquivo) {
-            imageCrop.alturaImagemOriginal = arquivo.alturaOriginal;
-            imageCrop.larguraImagemOriginal = arquivo.larguraOriginal;
-            let copiaImageCrop = { ...imageCrop };
-            let crop = this.processarLogicaDeCorteDaImagem(imageCrop, false);
-            let cropMiniatura = this.processarLogicaDeCorteDaImagem(copiaImageCrop, true);
 
-            this.ng2ImgToolsService.cropImage(arquivo.conteudoOriginal, crop.width, crop.height, crop.x, crop.y).subscribe(response => {
-              this.showLoading = false;
-              console.log(response);
+          imageCrop.alturaImagemOriginal = item.originalHeight;
+          imageCrop.larguraImagemOriginal = item.originalWidth;
+          let copiaImageCrop = { ...imageCrop };
+          let crop = this.processarLogicaDeCorteDaImagem(imageCrop, false);
+          let cropMiniatura = this.processarLogicaDeCorteDaImagem(copiaImageCrop, true);
 
-              let urlCreator = window.URL;
-              let imageData = this.sanitizer.bypassSecurityTrustUrl(
-                urlCreator.createObjectURL(response));
+          this.ng2ImgToolsService.cropImage(item.arquivoOriginal, crop.width, crop.height, crop.x, crop.y).subscribe(response => {
+            this.showLoading = false;
+            console.log(response);
 
-              this.imagensProcessadas.push(imageData);
-            }, error => {
-              console.error(error);
-            });
+            let urlCreator = window.URL;
+            let imageData = this.sanitizer.bypassSecurityTrustUrl(
+              urlCreator.createObjectURL(response));
 
-            this.ng2ImgToolsService.cropImage(arquivo.conteudoOriginal, cropMiniatura.width, cropMiniatura.height, cropMiniatura.x, cropMiniatura.y).subscribe(response => {
-              console.log(response);
+            this.imagensProcessadas.push(imageData);
+          }, error => {
+            console.error(error);
+          });
 
-              let urlCreator = window.URL;
-              let imageData = this.sanitizer.bypassSecurityTrustUrl(
-                urlCreator.createObjectURL(response));
+          this.ng2ImgToolsService.cropImage(item.arquivoOriginal, cropMiniatura.width, cropMiniatura.height, cropMiniatura.x, cropMiniatura.y).subscribe(response => {
+            console.log(response);
 
-              this.miniaturasProcessadas.push(imageData);
-            }, error => {
-              console.error(error);
-            });
-          }
+            let urlCreator = window.URL;
+            let imageData = this.sanitizer.bypassSecurityTrustUrl(
+              urlCreator.createObjectURL(response));
+
+            this.miniaturasProcessadas.push(imageData);
+          }, error => {
+            console.error(error);
+          });
+
         }
       }
       // cv.imshow(this.canvasOutput.nativeElement.id, src);
@@ -272,58 +303,5 @@ export class NgOpenCvComponent implements OnInit {
     imagemCrop.height = abaixo - acima;
 
     return imagemCrop;
-  }
-
-
-  transformarArquivosParaImagensCanvas(arquivos: Array<File>) {
-    console.log(arquivos);
-    this.elementosCanvas.length = 0;
-    this.arquivos.length = 0;
-    let elementosCanvas = new Array<any>();
-
-    arquivos.forEach(arquivo => {
-      let objetoArquivo = new Arquivo();
-      objetoArquivo.conteudoOriginal = arquivo;
-      let nomeArquivo = (arquivo.name + '').split('.')[0];
-      objetoArquivo.nome = nomeArquivo;
-      var canv = document.createElement('canvas');
-      canv.id = nomeArquivo;
-      this.elementosCanvas.push(canv);
-
-
-      var _URL = window.URL;
-      let img = new Image();
-      let _this = this;
-      img.onload = function () {
-        objetoArquivo.larguraOriginal = img.naturalWidth,
-          objetoArquivo.alturaOriginal = img.naturalHeight;
-        _this.arquivos.push(objetoArquivo);
-      };
-      img.src = _URL.createObjectURL(arquivo);
-
-      const reader = new FileReader();
-      const load$ = fromEvent(reader, 'load');
-      load$
-        .pipe(
-          switchMap(() => {
-            let canv1 = <HTMLCanvasElement>document.getElementById(canv.id);
-            return this.ngOpenCVService.loadImageToHTMLCanvas(`${reader.result}`, canv1);
-          })
-        )
-        .subscribe(
-          () => { },
-          err => {
-            console.log('Error loading image', err);
-          }
-        );
-      reader.readAsDataURL(arquivo);
-
-    });
-    // this.showLoading = false;
-    setTimeout(() => {
-      this.detectFace();
-    }, 100);
-    console.info(this.elementosCanvas);
-
   }
 }

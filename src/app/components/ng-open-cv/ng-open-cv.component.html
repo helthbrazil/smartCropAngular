@@ -14,11 +14,11 @@
   <img *ngFor="let item of miniaturasProcessadas" class="avatar" [src]="item">
 </div>
 
-<!-- <div style="margin: 5px;">
+<div style="margin: 5px;">
   <div class="control"><button id="tryIt" (click)="detectFace()" [disabled]="!classifiersLoaded$ | async">Detect Face</button></div>
-</div> -->
+</div>
 
 
 <div>
-  <canvas style="visibility: hidden" class="output-image" *ngFor="let item of elementosCanvas" [id]="item.id"></canvas>
+  <canvas style="display: none" class="output-image" *ngFor="let item of elementosCanvas" [id]="item.id"></canvas>
 </div>
