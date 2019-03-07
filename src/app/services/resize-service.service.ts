@@ -41,6 +41,7 @@ export class ResizeServiceService {
           imagemCropMiniatura.height, 0, 0, imagemCropMiniatura.width, imagemCropMiniatura.height);
 
         observer.next({
+          id: item.canvas.id,
           imagemPrincipal: canvasPrincipal.toDataURL(),
           imagemMiniatura: canvasMiniatura.toDataURL()
         });

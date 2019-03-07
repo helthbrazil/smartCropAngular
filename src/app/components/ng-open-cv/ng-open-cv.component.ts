@@ -7,6 +7,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { ImagemCrop } from 'src/app/models/imagemCrop';
 import { Arquivo } from 'src/app/models/arquivo';
 import { ResizeServiceService } from 'src/app/services/resize-service.service';
+import { ArquivoImagem } from 'src/app/models/arquivoImagem';
 
 
 @Component({
@@ -34,8 +35,8 @@ export class NgOpenCvComponent implements OnInit {
 
   elementosCanvas: Array<any>;
   arquivos: Array<Arquivo>;
-  imagensProcessadas: Array<any>
-  miniaturasProcessadas: Array<any>
+  imagensProcessadas: Array<ArquivoImagem>
+  miniaturasProcessadas: Array<ArquivoImagem>
 
   file: any;
   imageData: any;
@@ -48,8 +49,8 @@ export class NgOpenCvComponent implements OnInit {
   ngOnInit() {
     this.elementosCanvas = new Array<any>();
     this.arquivos = new Array<Arquivo>();
-    this.imagensProcessadas = new Array<any>();
-    this.miniaturasProcessadas = new Array<any>();
+    this.imagensProcessadas = new Array<ArquivoImagem>();
+    this.miniaturasProcessadas = new Array<ArquivoImagem>();
 
     this.ngOpenCVService.isReady$
       .pipe(
@@ -187,8 +188,8 @@ export class NgOpenCvComponent implements OnInit {
       console.log('Imagens Processadas');
       this.showLoading = false;
       for (let i = 0; i < response.length; i++) {
-        this.imagensProcessadas.push(response[i].imagemPrincipal);
-        this.miniaturasProcessadas.push(response[i].imagemMiniatura);
+        this.imagensProcessadas.push(new ArquivoImagem(response[i].id, response[i].imagemPrincipal));
+        this.miniaturasProcessadas.push(new ArquivoImagem(response[i].id, response[i].imagemMiniatura));
       }
     });
 
@@ -274,6 +275,7 @@ export class NgOpenCvComponent implements OnInit {
 
     // detect faces
     const msize = new cv.Size(0, 0);
+    // VER LINK: https://docs.opencv.org/2.4/modules/objdetect/doc/cascade_classification.html
     faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
     for (let i = 0; i < faces.size(); ++i) {
       // PEGAR SOMENTE O PRIMEIRO ROSTO ENCONTRADO

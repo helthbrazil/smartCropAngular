@@ -11,9 +11,9 @@
 </div>
 
 <div *ngIf="imagensProcessadas">
-  <img *ngFor="let item of imagensProcessadas" class="foto-principal" [src]="item">
+  <img *ngFor="let item of imagensProcessadas" class="foto-principal" [src]="item.dataURL">
   <br>
-  <img *ngFor="let item of miniaturasProcessadas" class="avatar" [src]="item">
+  <img *ngFor="let item of miniaturasProcessadas" class="avatar" [src]="item.dataURL">
 </div>
 
 <div>

@@ -38,15 +38,16 @@
 }
 
 .avatar {
-  width: 40px;
-  height: 40px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   margin: 2px;
 }
 
 .foto-principal {
-  max-width: 100px;
-  min-width: 100px;
+  max-width: 200px;
+  min-width: 200px;
+  border-radius: 5px;
   margin: 2px;
 }
 
