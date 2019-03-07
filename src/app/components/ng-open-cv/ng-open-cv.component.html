@@ -1,7 +1,8 @@
 <h2>Detecção Facial</h2>
 
 <div style="margin: 15px;">
-  <input (change)="readDataUrl($event)" multiple #fileInput type="file" id="fileInput" name="file" accept="image/*" />
+  <input draggable="true" (change)="lerArquivos($event)" multiple #fileInput type="file" id="fileInput" name="file"
+    accept="image/*" />
 </div>
 
 <div *ngIf="showLoading">
@@ -11,13 +12,9 @@
 
 <div *ngIf="imagensProcessadas">
   <img *ngFor="let item of imagensProcessadas" class="foto-principal" [src]="item">
+  <br>
   <img *ngFor="let item of miniaturasProcessadas" class="avatar" [src]="item">
 </div>
-
-<!-- <div style="margin: 5px;">
-  <div class="control"><button id="tryIt" (click)="detectFace()" [disabled]="!classifiersLoaded$ | async">Detect Face</button></div>
-</div>
- -->
 
 <div>
   <canvas style="display: none" class="output-image" *ngFor="let item of elementosCanvas" [id]="item.id"></canvas>

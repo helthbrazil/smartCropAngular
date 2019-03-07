@@ -29,7 +29,6 @@ export class NgOpenCvComponent implements OnInit {
   showLoading = false;
   maxWidth = 800;
   maxHeight = this.maxWidth;
-  // Notifies of the ready state of the classifiers load operation
   private classifiersLoaded = new BehaviorSubject<boolean>(false);
   classifiersLoaded$ = this.classifiersLoaded.asObservable();
 
@@ -38,59 +37,46 @@ export class NgOpenCvComponent implements OnInit {
   imagensProcessadas: Array<any>
   miniaturasProcessadas: Array<any>
 
-  // HTML Element references
-  @ViewChild('fileInput')
-  fileInput: ElementRef;
-  @ViewChild('canvasInput')
-  canvasInput: ElementRef;
-  @ViewChild('canvasOutput')
-  canvasOutput: ElementRef;
-
-  canvasList: Array<ElementRef>;
-
   file: any;
   imageData: any;
   imageDataAvatar: any;
 
-  // Inject the NgOpenCVService
   constructor(private ngOpenCVService: NgOpenCVService, private ng2ImgToolsService: Ng2ImgToolsService,
     private sanitizer: DomSanitizer, private resizeService: ResizeServiceService) { }
 
+  // INICIALIZA A BIBLIOTECA DE DETECÇÃO  
   ngOnInit() {
-    this.canvasList = new Array<ElementRef>();
     this.elementosCanvas = new Array<any>();
     this.arquivos = new Array<Arquivo>();
     this.imagensProcessadas = new Array<any>();
     this.miniaturasProcessadas = new Array<any>();
 
-    // Always subscribe to the NgOpenCVService isReady$ observer before using a CV related function to ensure that the OpenCV has been
-    // successfully loaded
     this.ngOpenCVService.isReady$
       .pipe(
-        // The OpenCV library has been successfully loaded if result.ready === true
         filter((result: OpenCVLoadResult) => result.ready),
         switchMap(() => {
-          // Load the face and eye classifiers files
-          return this.loadClassifiers();
+          return this.carregarClassificadores();
         })
       )
       .subscribe(() => {
-        // The classifiers have been succesfully loaded
         this.classifiersLoaded.next(true);
       });
   }
 
   ngAfterViewInit(): void { }
 
-  readDataUrl(event) {
+  /**
+   * Método utilizado para ler os arquivos anexados
+   * @author Hebert Ferreira
+   * @param event 
+   */
+  lerArquivos(event) {
 
     let observerRedimensionar = new Array<any>();
     let observerLoad = new Array<any>();
-
-    // LIMPAR LISTA DE CANVAS
     let totalDeArquivos = event.target.files.length;
 
-    if(totalDeArquivos > this.limiteArquivos){
+    if (totalDeArquivos > this.limiteArquivos) {
       alert(`O máximo de arquivos permitidos é ${this.limiteArquivos} arquivos`);
       throw 'Quantidade de arquivos excedida';
     }
@@ -101,6 +87,8 @@ export class NgOpenCvComponent implements OnInit {
       this.imagensProcessadas.length = 0;
       this.elementosCanvas.length = 0;
       this.miniaturasProcessadas.length = 0;
+    } else {
+      throw 'Não há arquivos para processar';
     }
 
     let arquivos = new Array<File>();
@@ -111,6 +99,7 @@ export class NgOpenCvComponent implements OnInit {
       observerRedimensionar.push(this.resizeService.redimensionar(this.maxWidth, arquivos[i]));
     }
 
+    // REDIMENSIONAR IMAGENS
     forkJoin(observerRedimensionar).subscribe(response => {
       console.info('imagens redimensionadas');
       response.forEach(item => {
@@ -121,20 +110,23 @@ export class NgOpenCvComponent implements OnInit {
         observerLoad.push(this.ngOpenCVService.loadImageToHTMLCanvas(elemento.dataurl, elemento.canvas));
       });
 
+      // CARREGAR IMAGENS PARA A MEMÓRIA DO SERVIÇO DE DETECÇÃO DE FACES
       forkJoin(observerLoad).subscribe(response => {
         console.info('imagens carregadas');
         setTimeout(() => {
-          this.detectFace();
+          this.carregarServicoDeDeteccaoFace();
         }, 100);
       });
     });
 
   }
-  // Before attempting face detection, we need to load the appropriate classifiers in memory first
-  // by using the createFileFromUrl(path, url) function, which takes two parameters
-  // @path: The path you will later use in the detectMultiScale function call
-  // @url: The url where to retrieve the file from.
-  loadClassifiers(): Observable<any> {
+
+  /**
+   * Carregar classificadores para detecção nas imagens.
+   * No caso só é carregado o classificador para detecção
+   * de faces frontais.
+   */
+  carregarClassificadores(): Observable<any> {
     return forkJoin(
       this.ngOpenCVService.createFileFromUrl(
         'haarcascade_frontalface_default.xml',
@@ -143,7 +135,11 @@ export class NgOpenCvComponent implements OnInit {
     );
   }
 
-  detectFace() {
+  /**
+   * Método que inicializa parâmetros e dispara o serviço de busca de faces
+   * @author Hebert Ferreira
+   */
+  carregarServicoDeDeteccaoFace() {
     this.showLoading = true;
     this.imagensProcessadas.length = 0;
     this.miniaturasProcessadas.length = 0;
@@ -158,7 +154,7 @@ export class NgOpenCvComponent implements OnInit {
           return this.classifiersLoaded$;
         }),
         tap(() => {
-          this.findFaceAndEyes();
+          this.buscarFaces();
         })
       )
       .subscribe(() => {
@@ -166,66 +162,48 @@ export class NgOpenCvComponent implements OnInit {
       });
   }
 
-
-  findFaceAndEyes() {
+  /**
+   * Método utilizado para detectar as faces dos usuários a partir de elementos canvas pré-carregados.
+   * @author Hebert Ferreira
+   * 
+   */
+  buscarFaces() {
     console.info('Detectando faces');
     this.showLoading = true;
     let quantidadeImagens = this.arquivos.length;
     let contador = 0;
-    // Example code from OpenCV.js to perform face and eyes detection
-    // Slight adapted for Angular    
     this.mensagemLoading = 'Detectando faces e processando imagens';
     let observerCorteFinal = new Array<any>();
+
     this.elementosCanvas.forEach(item => {
-      let canvas = item.canvas;
-      contador++;
-      const src = cv.imread(canvas.id);
-      const gray = new cv.Mat();
-      cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
-      const faces = new cv.RectVector();
-      const faceCascade = new cv.CascadeClassifier();
-      // load pre-trained classifiers, they should be in memory now
-      faceCascade.load('haarcascade_frontalface_default.xml');
-
-      // detect faces
-      const msize = new cv.Size(0, 0);
-      faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
-      for (let i = 0; i < faces.size(); ++i) {
-        // PEGAR SOMENTE O PRIMEIRO ROSTO ENCONTRADO
-        if (i == 0) {
-          console.info(`Rosto encontrado [${canvas.id}]`);
-          // PROCESSAR REGRA DE CORTE
-          let imageCrop = new ImagemCrop(faces.get(i).width, faces.get(i).height, faces.get(i).x, faces.get(i).y);
-
-          imageCrop.alturaImagemOriginal = item.originalHeight;
-          imageCrop.larguraImagemOriginal = item.originalWidth;
-          let copiaImageCrop = { ...imageCrop };
-          let crop = this.processarLogicaDeCorteDaImagem(imageCrop, false);
-          let cropMiniatura = this.processarLogicaDeCorteDaImagem(copiaImageCrop, true);
-
-          observerCorteFinal.push(this.resizeService.cortarImagem(item, crop, cropMiniatura));
-        }
-      }
-      // cv.imshow(this.canvasOutput.nativeElement.id, src);
-      src.delete();
-      gray.delete();
-      faceCascade.delete();
-      faces.delete();
+      this.processarImagens(item, observerCorteFinal);
     });
 
     console.log('Processando imagens');
+
+    // PROCESSANDO IMAGENS. O RESULTADO É UM ARRAY COM IMAGENS 
+    // PRINCIPAIS E EM MINIATURAS
     forkJoin(observerCorteFinal).subscribe(response => {
       console.log('Imagens Processadas');
       this.showLoading = false;
       for (let i = 0; i < response.length; i++) {
         this.imagensProcessadas.push(response[i].imagemPrincipal);
         this.miniaturasProcessadas.push(response[i].imagemMiniatura);
-      }      
+      }
     });
 
   }
 
-  processarLogicaDeCorteDaImagem(imagemCrop: ImagemCrop, isMiniatura: boolean): ImagemCrop {
+  /**
+   * 
+   * Esse método é responsável pelo algoritmo de corte das imagens principais e miniaturas.
+   * Retorna um objeto que possui os parâmetros necessários para corte.
+   * @author Hebert Ferreira - Tenente Rafael - Thiago Lopes
+   * @returns ImagemCrop    
+   * @param imagemCrop 
+   * @param isMiniatura 
+   */
+  private processarLogicaDeCorteDaImagem(imagemCrop: ImagemCrop, isMiniatura: boolean): ImagemCrop {
     // ADICIONAR ESPAÇO
     let esquerda = imagemCrop.x - imagemCrop.width * (isMiniatura ? this.PROPORCAO_CIMA : this.PROPORCAO_LADO);
     let direita = imagemCrop.x + imagemCrop.width * (1 + (isMiniatura ? this.PROPORCAO_CIMA : this.PROPORCAO_LADO));
@@ -270,7 +248,6 @@ export class NgOpenCvComponent implements OnInit {
       }
     }
 
-
     // TRANSFORMAR EM INTEIROS
     esquerda = Math.floor(esquerda);
     direita = Math.floor(direita);
@@ -284,4 +261,41 @@ export class NgOpenCvComponent implements OnInit {
 
     return imagemCrop;
   }
+
+  processarImagens(item: any, observerCorteFinal: Array<any>) {
+    let canvas = item.canvas;
+    const src = cv.imread(canvas.id);
+    const gray = new cv.Mat();
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY, 0);
+    const faces = new cv.RectVector();
+    const faceCascade = new cv.CascadeClassifier();
+    // load pre-trained classifiers, they should be in memory now
+    faceCascade.load('haarcascade_frontalface_default.xml');
+
+    // detect faces
+    const msize = new cv.Size(0, 0);
+    faceCascade.detectMultiScale(gray, faces, 1.1, 3, 0, msize, msize);
+    for (let i = 0; i < faces.size(); ++i) {
+      // PEGAR SOMENTE O PRIMEIRO ROSTO ENCONTRADO
+      if (i == 0) {
+        console.info(`Rosto encontrado [${canvas.id}]`);
+        // PROCESSAR REGRA DE CORTE
+        let imageCrop = new ImagemCrop(faces.get(i).width, faces.get(i).height, faces.get(i).x, faces.get(i).y);
+
+        imageCrop.alturaImagemOriginal = item.originalHeight;
+        imageCrop.larguraImagemOriginal = item.originalWidth;
+        let copiaImageCrop = { ...imageCrop };
+        let crop = this.processarLogicaDeCorteDaImagem(imageCrop, false);
+        let cropMiniatura = this.processarLogicaDeCorteDaImagem(copiaImageCrop, true);
+
+        if (observerCorteFinal)
+          observerCorteFinal.push(this.resizeService.cortarImagem(item, crop, cropMiniatura));
+      }
+    }
+    src.delete();
+    gray.delete();
+    faceCascade.delete();
+    faces.delete();
+  }
+
 }
