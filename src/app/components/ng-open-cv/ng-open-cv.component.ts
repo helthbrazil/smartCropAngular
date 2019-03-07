@@ -24,10 +24,11 @@ export class NgOpenCvComponent implements OnInit {
 
   readonly DIMENSOES = [40, 120, 200, 600, 800];
 
+  limiteArquivos = 50;
+
   showLoading = false;
-  maxWidth = 400;
+  maxWidth = 800;
   maxHeight = this.maxWidth;
-  imageUrl = 'assets/DaveChappelle.jpg';
   // Notifies of the ready state of the classifiers load operation
   private classifiersLoaded = new BehaviorSubject<boolean>(false);
   classifiersLoaded$ = this.classifiersLoaded.asObservable();
@@ -88,6 +89,12 @@ export class NgOpenCvComponent implements OnInit {
 
     // LIMPAR LISTA DE CANVAS
     let totalDeArquivos = event.target.files.length;
+
+    if(totalDeArquivos > this.limiteArquivos){
+      alert(`O máximo de arquivos permitidos é ${this.limiteArquivos} arquivos`);
+      throw 'Quantidade de arquivos excedida';
+    }
+
     if (totalDeArquivos > 0) {
       this.showLoading = true;
       this.mensagemLoading = 'Padronizando tamanho das imagens';
@@ -105,6 +112,7 @@ export class NgOpenCvComponent implements OnInit {
     }
 
     forkJoin(observerRedimensionar).subscribe(response => {
+      console.info('imagens redimensionadas');
       response.forEach(item => {
         this.elementosCanvas.push(item);
       });
@@ -117,26 +125,10 @@ export class NgOpenCvComponent implements OnInit {
         console.info('imagens carregadas');
         setTimeout(() => {
           this.detectFace();
-        }, 500);
+        }, 100);
       });
-
     });
 
-    /*  this.resizeService.redimensionar(800, event.target.files[0], (dataurl, canvas) => {
-    console.info(dataurl);
-    console.info(canvas);
-    this.elementosCanvas.push(canvas);
-    this.ngOpenCVService.loadImageToHTMLCanvas(dataurl, canvas);
-  }); */
-
-    /* this.ng2ImgToolsService.resize(arquivos, 800, 800, false).subscribe(response => {
-      arquivosRedimensionados.push(response);
-      if (arquivosRedimensionados.length === totalDeArquivos) {
-        this.transformarArquivosParaImagensCanvas(arquivosRedimensionados);
-      }
-    }, error => {
-      console.error(error);
-    }); */
   }
   // Before attempting face detection, we need to load the appropriate classifiers in memory first
   // by using the createFileFromUrl(path, url) function, which takes two parameters
@@ -153,7 +145,6 @@ export class NgOpenCvComponent implements OnInit {
 
   detectFace() {
     this.showLoading = true;
-    this.mensagemLoading = 'Detectando faces e processando imagens';
     this.imagensProcessadas.length = 0;
     this.miniaturasProcessadas.length = 0;
     // before detecting the face we need to make sure that
@@ -177,11 +168,14 @@ export class NgOpenCvComponent implements OnInit {
 
 
   findFaceAndEyes() {
+    console.info('Detectando faces');
     this.showLoading = true;
     let quantidadeImagens = this.arquivos.length;
     let contador = 0;
     // Example code from OpenCV.js to perform face and eyes detection
-    // Slight adapted for Angular
+    // Slight adapted for Angular    
+    this.mensagemLoading = 'Detectando faces e processando imagens';
+    let observerCorteFinal = new Array<any>();
     this.elementosCanvas.forEach(item => {
       let canvas = item.canvas;
       contador++;
@@ -199,7 +193,7 @@ export class NgOpenCvComponent implements OnInit {
       for (let i = 0; i < faces.size(); ++i) {
         // PEGAR SOMENTE O PRIMEIRO ROSTO ENCONTRADO
         if (i == 0) {
-
+          console.info(`Rosto encontrado [${canvas.id}]`);
           // PROCESSAR REGRA DE CORTE
           let imageCrop = new ImagemCrop(faces.get(i).width, faces.get(i).height, faces.get(i).x, faces.get(i).y);
 
@@ -209,31 +203,7 @@ export class NgOpenCvComponent implements OnInit {
           let crop = this.processarLogicaDeCorteDaImagem(imageCrop, false);
           let cropMiniatura = this.processarLogicaDeCorteDaImagem(copiaImageCrop, true);
 
-          this.ng2ImgToolsService.cropImage(item.arquivoOriginal, crop.width, crop.height, crop.x, crop.y).subscribe(response => {
-            this.showLoading = false;
-            console.log(response);
-
-            let urlCreator = window.URL;
-            let imageData = this.sanitizer.bypassSecurityTrustUrl(
-              urlCreator.createObjectURL(response));
-
-            this.imagensProcessadas.push(imageData);
-          }, error => {
-            console.error(error);
-          });
-
-          this.ng2ImgToolsService.cropImage(item.arquivoOriginal, cropMiniatura.width, cropMiniatura.height, cropMiniatura.x, cropMiniatura.y).subscribe(response => {
-            console.log(response);
-
-            let urlCreator = window.URL;
-            let imageData = this.sanitizer.bypassSecurityTrustUrl(
-              urlCreator.createObjectURL(response));
-
-            this.miniaturasProcessadas.push(imageData);
-          }, error => {
-            console.error(error);
-          });
-
+          observerCorteFinal.push(this.resizeService.cortarImagem(item, crop, cropMiniatura));
         }
       }
       // cv.imshow(this.canvasOutput.nativeElement.id, src);
@@ -241,6 +211,16 @@ export class NgOpenCvComponent implements OnInit {
       gray.delete();
       faceCascade.delete();
       faces.delete();
+    });
+
+    console.log('Processando imagens');
+    forkJoin(observerCorteFinal).subscribe(response => {
+      console.log('Imagens Processadas');
+      this.showLoading = false;
+      for (let i = 0; i < response.length; i++) {
+        this.imagensProcessadas.push(response[i].imagemPrincipal);
+        this.miniaturasProcessadas.push(response[i].imagemMiniatura);
+      }      
     });
 
   }

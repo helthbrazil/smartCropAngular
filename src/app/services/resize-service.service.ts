@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { ImagemCrop } from '../models/imagemCrop';
 
 @Injectable({
   providedIn: 'root'
@@ -11,6 +12,43 @@ export class ResizeServiceService {
   maxWidth: number;
 
   constructor() {
+  }
+
+  cortarImagem(item: any, imagemCropPrincipal: ImagemCrop, imagemCropMiniatura: ImagemCrop): Observable<any> {
+    return new Observable<any>(observer => {
+      let imageSrc = item.canvas.toDataURL();
+      var canvasPrincipal = document.createElement('canvas');
+      var canvasMiniatura = document.createElement('canvas');
+
+      canvasPrincipal.style.display = 'none';
+      canvasMiniatura.style.display = 'none';
+
+      var ctxPrincipal = canvasPrincipal.getContext('2d');
+      var ctxMiniatura = canvasMiniatura.getContext('2d');
+      var _this = this;
+
+      var img = new Image();
+      img.onload = function () {
+        canvasPrincipal.width = imagemCropPrincipal.width;
+        canvasPrincipal.height = imagemCropPrincipal.height;
+
+        canvasMiniatura.width = imagemCropMiniatura.width;
+        canvasMiniatura.height = imagemCropMiniatura.height;
+
+        ctxPrincipal.drawImage(img, imagemCropPrincipal.x, imagemCropPrincipal.y, imagemCropPrincipal.width,
+          imagemCropPrincipal.height, 0, 0, imagemCropPrincipal.width, imagemCropPrincipal.height);
+        ctxMiniatura.drawImage(img, imagemCropMiniatura.x, imagemCropMiniatura.y, imagemCropMiniatura.width,
+          imagemCropMiniatura.height, 0, 0, imagemCropMiniatura.width, imagemCropMiniatura.height);
+
+        observer.next({
+          imagemPrincipal: canvasPrincipal.toDataURL(),
+          imagemMiniatura: canvasMiniatura.toDataURL()
+        });
+        observer.complete();
+      };
+      img.src = imageSrc;
+    });
+
   }
 
   redimensionar(maxSize, arquivo: any): Observable<any> {
@@ -71,12 +109,8 @@ export class ResizeServiceService {
           imagem.src = _URL.createObjectURL(arquivo);
         }
         reader.readAsDataURL(arquivo);
-
       }
-
-    })
-
-
+    });
   }
 
   private dataURItoBlob(dataURI) {
@@ -93,17 +127,8 @@ export class ResizeServiceService {
     for (var i = 0; i < byteString.length; i++) {
       ia[i] = byteString.charCodeAt(i);
     }
-
-    //Old Code
-    //write the ArrayBuffer to a blob, and you're done
-    //var bb = new BlobBuilder();
-    //bb.append(ab);
-    //return bb.getBlob(mimeString);
-
     //New Code
     return new Blob([ab], { type: mimeString });
-
-
   }
 
 }
