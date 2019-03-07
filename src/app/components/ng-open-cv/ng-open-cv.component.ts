@@ -36,7 +36,6 @@ export class NgOpenCvComponent implements OnInit {
   elementosCanvas: Array<any>;
   arquivos: Array<Arquivo>;
   imagensProcessadas: Array<ArquivoImagem>
-  miniaturasProcessadas: Array<ArquivoImagem>
 
   file: any;
   imageData: any;
@@ -50,7 +49,6 @@ export class NgOpenCvComponent implements OnInit {
     this.elementosCanvas = new Array<any>();
     this.arquivos = new Array<Arquivo>();
     this.imagensProcessadas = new Array<ArquivoImagem>();
-    this.miniaturasProcessadas = new Array<ArquivoImagem>();
 
     this.ngOpenCVService.isReady$
       .pipe(
@@ -87,7 +85,6 @@ export class NgOpenCvComponent implements OnInit {
       this.mensagemLoading = 'Padronizando tamanho das imagens';
       this.imagensProcessadas.length = 0;
       this.elementosCanvas.length = 0;
-      this.miniaturasProcessadas.length = 0;
     } else {
       throw 'Não há arquivos para processar';
     }
@@ -143,7 +140,6 @@ export class NgOpenCvComponent implements OnInit {
   carregarServicoDeDeteccaoFace() {
     this.showLoading = true;
     this.imagensProcessadas.length = 0;
-    this.miniaturasProcessadas.length = 0;
     // before detecting the face we need to make sure that
     // 1. OpenCV is loaded
     // 2. The classifiers have been loaded    
@@ -188,8 +184,7 @@ export class NgOpenCvComponent implements OnInit {
       console.log('Imagens Processadas');
       this.showLoading = false;
       for (let i = 0; i < response.length; i++) {
-        this.imagensProcessadas.push(new ArquivoImagem(response[i].id, response[i].imagemPrincipal));
-        this.miniaturasProcessadas.push(new ArquivoImagem(response[i].id, response[i].imagemMiniatura));
+        this.imagensProcessadas.push(new ArquivoImagem(response[i].id, response[i].imagemPrincipal, response[i].imagemMiniatura));
       }
     });
 
@@ -300,4 +295,10 @@ export class NgOpenCvComponent implements OnInit {
     faces.delete();
   }
 
+  excluirImagem(imagem: ArquivoImagem) {
+    let index = this.imagensProcessadas.indexOf(imagem);
+    if (index !== -1) {
+      this.imagensProcessadas.splice(index, 1);
+    }
+  }
 }

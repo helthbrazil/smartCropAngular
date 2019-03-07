@@ -1,21 +1,34 @@
-<h2>Detecção Facial</h2>
+<h1>Detecção Facial</h1>
+<div style="padding: 10px;">
+  <div style="margin: 10px;">
+    <input draggable="true" (change)="lerArquivos($event)" multiple #fileInput type="file" id="fileInput" name="file"
+      accept="image/*" />
+  </div>
 
-<div style="margin: 15px;">
-  <input draggable="true" (change)="lerArquivos($event)" multiple #fileInput type="file" id="fileInput" name="file"
-    accept="image/*" />
-</div>
+  <!--  <div *ngIf="showLoading">
+        <div class="loader"></div>
+        <p>{{mensagemLoading}}</p>
+      </div> -->
 
-<div *ngIf="showLoading">
-  <div class="loader"></div>
-  <p>{{mensagemLoading}}</p>
-</div>
+  <div class="lista-fotos">
+    <figure *ngFor="let item of imagensProcessadas" title="Última atualização: 12/05/2018" class="card ci">
+      <img [src]="item.dataURL">
+      <figcaption><span (click)="excluirImagem(item)" class="jm su"><a href="#" class="ex" title="Excluir"></a></span>
+        <div class="menor tc">
+          <tr>
+            <td><img class="avatar" [src]="item.dataURLMiniatura"></td>
+            <td style="padding-left: 5px;">{{item.nome}}</td>
+          </tr>
+        </div>
+      </figcaption>
+    </figure>
+  </div>
 
-<div *ngIf="imagensProcessadas">
-  <img *ngFor="let item of imagensProcessadas" class="foto-principal" [src]="item.dataURL">
-  <br>
-  <img *ngFor="let item of miniaturasProcessadas" class="avatar" [src]="item.dataURL">
-</div>
+  <div *ngIf="showLoading" class="msg de carr flu fixo" id="upload">
+    {{mensagemLoading}}
+  </div>
 
-<div>
-  <canvas style="display: none" class="output-image" *ngFor="let item of elementosCanvas" [id]="item.id"></canvas>
+  <div>
+    <canvas style="display: none" class="output-image" *ngFor="let item of elementosCanvas" [id]="item.id"></canvas>
+  </div>
 </div>
